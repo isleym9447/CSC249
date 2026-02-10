@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parallel Arrays vs Objects Demo | CSC 249</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #065A82 0%, #1C7293 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        .container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .panel h2 {
+            color: #065A82;
+            margin-bottom: 15px;
+            font-size: 20px;
+            text-align: center;
+        }
+        #canvas-parallel, #canvas-objects {
+            border-radius: 8px;
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #065A82;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #1C7293;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button.reset {
+            background: #64748B;
+        }
+        button.reset:hover {
+            background: #475569;
+        }
+        .status {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            min-height: 24px;
+        }
+        .status.error {
+            color: #EF4444;
+            font-weight: bold;
+        }
+        .status.success {
+            color: #10B981;
+            font-weight: bold;
+        }
+        .explanation {
+            max-width: 900px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .explanation h3 {
+            color: #065A82;
+            margin-bottom: 10px;
+        }
+        .explanation p {
+            color: #334155;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .explanation code {
+            background: #F1F5F9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Parallel Arrays vs Objects</h1>
+    <p class="subtitle">CSC 249 Module 1: Why objects keep data together</p>
+
+    <div class="container">
+        <div class="panel">
+            <h2>❌ Parallel Arrays</h2>
+            <div id="canvas-parallel"></div>
+            <div class="controls">
+                <button onclick="sortParallelByName()">Sort by Name</button>
+                <button onclick="resetParallel()" class="reset">Reset</button>
+            </div>
+            <div id="status-parallel" class="status"></div>
+        </div>
+
+        <div class="panel">
+            <h2>✓ Objects</h2>
+            <div id="canvas-objects"></div>
+            <div class="controls">
+                <button onclick="sortObjectsByName()">Sort by Name</button>
+                <button onclick="resetObjects()" class="reset">Reset</button>
+            </div>
+            <div id="status-objects" class="status"></div>
+        </div>
+    </div>
+
+    <div class="explanation">
+        <h3>What's Happening?</h3>
+        <p>
+            <strong>Parallel Arrays</strong> store related data in separate lists, connected only by index.
+            When you sort one array, the others don't follow — the correspondence breaks!
+        </p>
+        <p>
+            <strong>Objects</strong> bundle all related data together. When you sort a list of objects,
+            each object moves as a complete unit. The data stays correct because it's <em>together</em>.
+        </p>
+        <p>
+            <strong>Try it:</strong> Click "Sort by Name" on both panels and watch the difference.
+            Notice how the lines get tangled on the left (broken data), while the right stays clean (correct data).
+        </p>
+    </div>
+
+    <script>
+        // Data
+        const originalCourses = [
+            { name: "Data Structures", code: "CSC 249", credits: 3 },
+            { name: "Intro to C++", code: "CSC 134", credits: 3 },
+            { name: "Calculus II", code: "MAT 172", credits: 4 }
+        ];
+
+        // Parallel arrays state
+        let parallelNames, parallelCodes, parallelCredits;
+        let parallelSorted = false;
+        let parallelAnimProgress = 1;
+        let parallelOldPositions = [];
+
+        // Objects state
+        let objectsCourses;
+        let objectsSorted = false;
+        let objectsAnimProgress = 1;
+        let objectsOldPositions = [];
+
+        // Colors
+        const COLORS = {
+            primary: '#065A82',
+            secondary: '#1C7293',
+            accent: '#21295C',
+            success: '#10B981',
+            error: '#EF4444',
+            warning: '#F59E0B',
+            text: '#1E293B',
+            muted: '#64748B',
+            light: '#F8FAFC'
+        };
+
+        // Initialize data
+        function initParallel() {
+            parallelNames = originalCourses.map(c => c.name);
+            parallelCodes = originalCourses.map(c => c.code);
+            parallelCredits = originalCourses.map(c => c.credits);
+            parallelSorted = false;
+            parallelAnimProgress = 1;
+            document.getElementById('status-parallel').textContent = '';
+            document.getElementById('status-parallel').className = 'status';
+        }
+
+        function initObjects() {
+            objectsCourses = originalCourses.map(c => ({...c}));
+            objectsSorted = false;
+            objectsAnimProgress = 1;
+            document.getElementById('status-objects').textContent = '';
+            document.getElementById('status-objects').className = 'status';
+        }
+
+        // Sort functions
+        function sortParallelByName() {
+            if (parallelSorted) return;
+
+            // Store old positions for animation
+            parallelOldPositions = parallelNames.map((_, i) => i);
+
+            // Only sort names, leave others!
+            const indices = parallelNames.map((_, i) => i);
+            indices.sort((a, b) => parallelNames[a].localeCompare(parallelNames[b]));
+
+            parallelNames = indices.map(i => originalCourses[i].name);
+            // Codes and credits stay in original order - THIS IS THE BUG!
+
+            parallelSorted = true;
+            parallelAnimProgress = 0;
+
+            document.getElementById('status-parallel').textContent = '⚠️ DATA CORRUPTED! Names sorted, but codes and credits didn\'t follow!';
+            document.getElementById('status-parallel').className = 'status error';
+        }
+
+        function sortObjectsByName() {
+            if (objectsSorted) return;
+
+            // Store old positions for animation
+            objectsOldPositions = objectsCourses.map((_, i) => i);
+
+            // Sort objects - everything moves together
+            const sortedIndices = objectsCourses.map((_, i) => i);
+            sortedIndices.sort((a, b) => objectsCourses[a].name.localeCompare(objectsCourses[b].name));
+
+            objectsCourses = sortedIndices.map(i => ({...originalCourses[i]}));
+            objectsSorted = true;
+            objectsAnimProgress = 0;
+
+            document.getElementById('status-objects').textContent = '✓ Sorted correctly! All data stayed together.';
+            document.getElementById('status-objects').className = 'status success';
+        }
+
+        function resetParallel() {
+            initParallel();
+        }
+
+        function resetObjects() {
+            initObjects();
+        }
+
+        // Parallel Arrays Canvas
+        let parallelSketch = function(p) {
+            const W = 380, H = 320;
+            const colWidth = 110;
+            const rowHeight = 55;
+            const startY = 70;
+
+            p.setup = function() {
+                let canvas = p.createCanvas(W, H);
+                canvas.parent('canvas-parallel');
+                initParallel();
+            };
+
+            p.draw = function() {
+                p.background(COLORS.light);
+
+                // Update animation
+                if (parallelAnimProgress < 1) {
+                    parallelAnimProgress += 0.03;
+                    if (parallelAnimProgress > 1) parallelAnimProgress = 1;
+                }
+
+                // Draw headers
+                const headers = ['names[]', 'codes[]', 'credits[]'];
+                const colX = [20, 140, 260];
+
+                headers.forEach((h, i) => {
+                    p.fill(COLORS.secondary);
+                    p.noStroke();
+                    p.rect(colX[i], 20, colWidth, 35, 6);
+                    p.fill(255);
+                    p.textAlign(p.CENTER, p.CENTER);
+                    p.textSize(13);
+                    p.textStyle(p.BOLD);
+                    p.text(h, colX[i] + colWidth/2, 37);
+                });
+
+                // Draw data cells
+                const data = [
+                    parallelNames,
+                    parallelCodes,
+                    parallelCredits.map(String)
+                ];
+
+                // Draw connecting lines first (behind cells)
+                if (parallelSorted) {
+                    for (let row = 0; row < 3; row++) {
+                        // Find where this original row's name ended up
+                        const origName = originalCourses[row].name;
+                        const newNameIdx = parallelNames.indexOf(origName);
+
+                        if (newNameIdx !== row) {
+                            // Draw tangled line
+                            p.stroke(COLORS.error);
+                            p.strokeWeight(2);
+                            const y1 = startY + newNameIdx * rowHeight + rowHeight/2;
+                            const y2 = startY + row * rowHeight + rowHeight/2;
+
+                            // Animated bezier curve showing the tangle
+                            const progress = p.constrain(parallelAnimProgress, 0, 1);
+                            const midX = colX[0] + colWidth + (colX[1] - colX[0] - colWidth) / 2;
+
+                            p.noFill();
+                            p.beginShape();
+                            p.vertex(colX[0] + colWidth, y1);
+                            p.bezierVertex(
+                                midX, y1,
+                                midX, p.lerp(y1, y2, progress),
+                                colX[1], p.lerp(y1, y2, progress)
+                            );
+                            p.endShape();
+                        }
+                    }
+                }
+
+                // Draw cells
+                for (let col = 0; col < 3; col++) {
+                    for (let row = 0; row < 3; row++) {
+                        const x = colX[col];
+                        let y = startY + row * rowHeight;
+
+                        // Animate names column movement
+                        if (col === 0 && parallelSorted && parallelAnimProgress < 1) {
+                            const origName = data[col][row];
+                            const origIdx = originalCourses.findIndex(c => c.name === origName);
+                            const origY = startY + origIdx * rowHeight;
+                            y = p.lerp(origY, y, parallelAnimProgress);
+                        }
+
+                        // Cell background
+                        const isCorrect = !parallelSorted || col === 0;
+                        p.fill(isCorrect ? 255 : '#FEE2E2');
+                        p.stroke(isCorrect ? '#E2E8F0' : COLORS.error);
+                        p.strokeWeight(isCorrect ? 1 : 2);
+                        p.rect(x, y, colWidth, rowHeight - 5, 4);
+
+                        // Cell text
+                        p.fill(COLORS.text);
+                        p.noStroke();
+                        p.textAlign(p.CENTER, p.CENTER);
+                        p.textSize(11);
+                        p.textStyle(p.NORMAL);
+
+                        const text = data[col][row];
+                        if (text.length > 14) {
+                            // Wrap long text
+                            const words = text.split(' ');
+                            let line1 = words[0];
+                            let line2 = words.slice(1).join(' ');
+                            p.text(line1, x + colWidth/2, y + rowHeight/2 - 8);
+                            p.text(line2, x + colWidth/2, y + rowHeight/2 + 8);
+                        } else {
+                            p.text(text, x + colWidth/2, y + rowHeight/2 - 2);
+                        }
+                    }
+                }
+
+                // Index labels
+                p.fill(COLORS.muted);
+                p.textSize(10);
+                p.textAlign(p.LEFT, p.CENTER);
+                for (let row = 0; row < 3; row++) {
+                    p.text(`[${row}]`, 5, startY + row * rowHeight + rowHeight/2 - 2);
+                }
+            };
+        };
+
+        // Objects Canvas
+        let objectsSketch = function(p) {
+            const W = 380, H = 320;
+            const boxWidth = 340;
+            const boxHeight = 80;
+            const startY = 30;
+            const startX = 20;
+
+            p.setup = function() {
+                let canvas = p.createCanvas(W, H);
+                canvas.parent('canvas-objects');
+                initObjects();
+            };
+
+            p.draw = function() {
+                p.background(COLORS.light);
+
+                // Update animation
+                if (objectsAnimProgress < 1) {
+                    objectsAnimProgress += 0.03;
+                    if (objectsAnimProgress > 1) objectsAnimProgress = 1;
+                }
+
+                // Draw each object as a card
+                for (let i = 0; i < objectsCourses.length; i++) {
+                    const course = objectsCourses[i];
+
+                    // Calculate animated position
+                    let y = startY + i * (boxHeight + 15);
+                    if (objectsSorted && objectsAnimProgress < 1) {
+                        // Find where this course was originally
+                        const origIdx = originalCourses.findIndex(c => c.name === course.name);
+                        const origY = startY + origIdx * (boxHeight + 15);
+                        y = p.lerp(origY, y, objectsAnimProgress);
+                    }
+
+                    // Card shadow
+                    p.noStroke();
+                    p.fill(0, 0, 0, 20);
+                    p.rect(startX + 3, y + 3, boxWidth, boxHeight, 8);
+
+                    // Card background
+                    p.fill(255);
+                    p.stroke(objectsSorted ? COLORS.success : COLORS.secondary);
+                    p.strokeWeight(2);
+                    p.rect(startX, y, boxWidth, boxHeight, 8);
+
+                    // Accent bar
+                    p.noStroke();
+                    p.fill(objectsSorted ? COLORS.success : COLORS.secondary);
+                    p.rect(startX, y, 6, boxHeight, 8, 0, 0, 8);
+
+                    // Course label
+                    p.fill(COLORS.muted);
+                    p.textSize(11);
+                    p.textAlign(p.LEFT, p.TOP);
+                    p.textStyle(p.NORMAL);
+                    p.text(`Course Object ${i + 1}`, startX + 15, y + 8);
+
+                    // Course data
+                    p.fill(COLORS.text);
+                    p.textSize(12);
+                    p.textStyle(p.BOLD);
+                    p.text(course.name, startX + 15, y + 28);
+
+                    p.textStyle(p.NORMAL);
+                    p.textSize(11);
+                    p.fill(COLORS.muted);
+                    p.text(`${course.code}  •  ${course.credits} credits`, startX + 15, y + 48);
+
+                    // Bundle indicator
+                    p.fill(objectsSorted ? COLORS.success : COLORS.secondary);
+                    p.textSize(20);
+                    p.textAlign(p.RIGHT, p.CENTER);
+                    p.text(objectsSorted ? '✓' : '⎔', startX + boxWidth - 15, y + boxHeight/2);
+                }
+            };
+        };
+
+        // Start sketches
+        new p5(parallelSketch);
+        new p5(objectsSketch);
+    </script>
+</body>
+</html>
