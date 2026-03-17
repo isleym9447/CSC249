@@ -30,7 +30,7 @@ void searchItem(const vector<string>& inventory) {
     }
 
     if (!found) {
-        cout << "Item: " << search << " not found." << endl;
+        cout << "Item: " << search << " not found in inventory. Maybe you dropped it somewhere." << endl;
     }
 }
 
