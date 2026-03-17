@@ -8,7 +8,7 @@ using namespace std;
 void displayInventory(const vector<string>& inventory) {
     cout << "\n--- Inventory ---\n";
     for (int i = 0; i < inventory.size(); i++) {
-        cout << inventory[i] << endl;
+        cout << i << ": " << inventory[i] << endl;
     }
 }
 
@@ -16,7 +16,6 @@ void displayInventory(const vector<string>& inventory) {
 void searchItem(const vector<string>& inventory) {
     string search;
     cout << "\nEnter item to search: ";
-    cin.ignore(); // clear input buffer
     getline(cin, search);
 
     bool found = false;
@@ -35,35 +34,50 @@ void searchItem(const vector<string>& inventory) {
 }
 
 int main() {
-    // Feature 2: Initialize inventory
-    vector<string> inventory = {"sword", "gold key", "apple", "shield", "health potion", "mysterious flask", "pouch of herbs"};
+    vector<string> inventory = {
+        "sword",
+        "gold key",
+        "apple",
+        "shield",
+        "health potion",
+        "mysterious flask",
+        "pouch of herbs"
+    };
 
-    int choice;
+    string input;
+    int choice = 0;
 
     do {
-        // Feature 1: Menu
         cout << "\n=== Adventure Inventory Menu ===\n";
         cout << "1. View Inventory\n";
         cout << "2. Search for Item\n";
         cout << "3. Exit\n";
         cout << "Enter your choice: ";
-        cin >> choice;
 
-        switch (choice) {
-            case 1:
-                displayInventory(inventory);
-                break;
+        getline(cin, input);
 
-            case 2:
-                searchItem(inventory);
-                break;
+        try {
+            choice = stoi(input);
 
-            case 3:
-                cout << "Ending adventure\n";
-                break;
+            switch (choice) {
+                case 1:
+                    displayInventory(inventory);
+                    break;
 
-            default:
-                cout << "Alas, that was invalid. Try again.\n";
+                case 2:
+                    searchItem(inventory);
+                    break;
+
+                case 3:
+                    cout << "Ending adventure.\n";
+                    break;
+
+                default:
+                    cout << "Alas, that was invalid. Try again.\n";
+            }
+        }
+        catch (...) {
+            cout << "Invalid input. Please enter a number from 1 to 3.\n";
         }
 
     } while (choice != 3);
