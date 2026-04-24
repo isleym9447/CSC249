@@ -1,0 +1,15 @@
+can you breifly explain how hashing works in python vs c++
+
+The simplest way to think about it
+C++  = “build the engine yourself”
+Python = “use a real engine that already exists”
+
+for c++, what if my salt is too short? too long?
+
+for python, what if my salt is too short? too long?
+
+how do i know my output is correct?
+
+when is this applied irl? 
+
+how can you help me create a program in c++ to achieve this
